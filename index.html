@@ -34,7 +34,7 @@
         </div>
       </form>
     </div>
-  </div>
+  </header>
 
   <!-- Dashboard Container -->
   <main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -119,6 +119,7 @@
   </main>
 
   <script>
+    // PRE-CONNECTED SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://swxejnfbaicyqcadqfvs.supabase.co';
     const SUPABASE_PUB_KEY = 'sb_publishable_OU7lOdvUHfLctGoeE4hINg_RgMyFhVE';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUB_KEY);
@@ -136,6 +137,8 @@
         loadStreak();
         loadGoals();
         loadEvents();
+      } else {
+        document.getElementById('goals-list').innerHTML = '<p class="text-center text-slate-500 py-8">Please sign in to view goals.</p>';
       }
     }
 
@@ -172,8 +175,9 @@
         await supabaseClient.auth.signUp({ email, password }) : 
         await supabaseClient.auth.signInWithPassword({ email, password });
 
-      if (res.error) alert(res.error.message);
-      else {
+      if (res.error) {
+        alert(res.error.message);
+      } else {
         closeAuthModal();
         checkAuth();
       }
@@ -194,7 +198,7 @@
         .from('savings_streaks')
         .select('*')
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         document.getElementById('streak-card').classList.remove('hidden');
@@ -226,7 +230,7 @@
 
     // 3. LOAD & RENDER GOALS
     async function loadGoals() {
-      const { data: goals } = await supabaseClient
+      const { data: goals, error } = await supabaseClient
         .from('long_term_goals')
         .select('*')
         .eq('user_id', currentUser.id)
@@ -234,6 +238,11 @@
 
       const container = document.getElementById('goals-list');
       container.innerHTML = '';
+
+      if (error) {
+        container.innerHTML = `<p class="text-center text-red-400 py-4 text-xs">${error.message}</p>`;
+        return;
+      }
 
       if (!goals || goals.length === 0) {
         container.innerHTML = '<p class="text-center text-slate-500 py-6">No goals set. Create one above!</p>';
@@ -253,7 +262,6 @@
         const monthlySave = (remaining / diffMonths).toFixed(2);
         const progressPct = Math.min(100, ((goal.current_savings / goal.target_amount) * 100)).toFixed(1);
 
-        // Inflation adjustment calculation
         const inflationFactor = Math.pow(1 + (goal.inflation_rate_pct / 100), diffYears);
         const adjustedTarget = (goal.target_amount * inflationFactor).toFixed(0);
 
@@ -263,25 +271,22 @@
           <div class="flex justify-between items-start">
             <div>
               <h3 class="text-xl font-bold text-white">${goal.title}</h3>
-              <p class="text-xs text-slate-400">Target Date: ${goal.target_date} (${diffYears} years / ${diffDays} days left)</p>
+              <p class="text-xs text-slate-400">Target Date: ${goal.target_date} (${diffYears} yrs / ${diffDays} days left)</p>
             </div>
             <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-bold">
               ${progressPct}% Progress
             </span>
           </div>
 
-          <!-- Progress Bar -->
           <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
             <div class="bg-indigo-500 h-3 rounded-full transition-all duration-500" style="width: ${progressPct}%"></div>
           </div>
 
-          <!-- Target Breakdown -->
           <div class="grid grid-cols-2 text-xs text-slate-400">
             <span>Saved: <strong class="text-emerald-400">KES ${goal.current_savings.toLocaleString()}</strong></span>
             <span class="text-right">Target: <strong class="text-white">KES ${goal.target_amount.toLocaleString()}</strong></span>
           </div>
 
-          <!-- Guidance Engine -->
           <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 text-center text-xs">
             <div>
               <p class="text-[10px] text-slate-400 uppercase">Daily Goal</p>
@@ -297,7 +302,6 @@
             </div>
           </div>
 
-          <!-- Deposit Action -->
           <div class="flex gap-2 pt-1">
             <input type="number" id="deposit-${goal.id}" placeholder="Enter Deposit (KES)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs">
             <button onclick="logDeposit('${goal.id}')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl text-xs font-bold transition">
