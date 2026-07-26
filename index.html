@@ -3,291 +3,389 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Time & Routine Manager</title>
-  <!-- Tailwind CSS -->
+  <title>VisionFlow | Multi-User Financial & Time Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Supabase JS Client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-12">
 
   <!-- Header -->
-  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-20">
     <div class="flex items-center space-x-3">
-      <i data-lucide="clock" class="text-indigo-400 w-6 h-6"></i>
-      <h1 class="text-xl font-bold tracking-wide">Time & Routine Manager</h1>
+      <i data-lucide="trending-up" class="text-indigo-400 w-6 h-6"></i>
+      <h1 class="text-xl font-bold tracking-wide">VisionFlow</h1>
     </div>
-    <div id="live-clock" class="text-sm font-semibold bg-slate-700 px-3 py-1.5 rounded-lg text-indigo-300">
-      00:00:00 AM
+    <div id="auth-section" class="flex items-center gap-3">
+      <!-- Dynamic Auth Buttons -->
     </div>
   </header>
 
-  <!-- Main Grid Container -->
-  <main class="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-700 p-6 rounded-2xl w-full max-w-md">
+      <h2 id="modal-title" class="text-xl font-bold mb-4">Account Login</h2>
+      <form id="auth-form" class="space-y-4">
+        <input type="email" id="auth-email" placeholder="Email Address" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+        <input type="password" id="auth-password" placeholder="Password" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+        <div class="flex justify-between items-center gap-2 pt-2">
+          <button type="submit" id="auth-submit-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl text-sm transition">Sign In</button>
+          <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-indigo-400 hover:underline">Need an account? Sign Up</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-    <!-- LEFT COLUMN: Daily Routine & Schedule -->
+  <!-- Dashboard Container -->
+  <main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- LEFT COLUMN: Goals & Financial Guidance -->
     <section class="lg:col-span-2 space-y-6">
       
-      <!-- Current Active Block -->
-      <div class="bg-indigo-950/40 border border-indigo-500/30 p-5 rounded-2xl shadow-lg">
-        <div class="flex justify-between items-center mb-2">
-          <span class="text-xs uppercase font-bold tracking-wider text-indigo-400">Current Focus Block</span>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Active Now
-          </span>
+      <!-- Streak Banner -->
+      <div id="streak-card" class="hidden bg-gradient-to-r from-amber-500/10 to-indigo-500/10 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i data-lucide="flame" class="w-8 h-8 text-amber-400"></i>
+          <div>
+            <h4 class="font-bold text-slate-100">Savings Habit Streak</h4>
+            <p id="streak-text" class="text-xs text-slate-400">0 Days Active</p>
+          </div>
         </div>
-        <h2 id="active-block-title" class="text-2xl font-bold text-white mb-1">Loading status...</h2>
-        <p id="active-block-time" class="text-sm text-slate-400">-- : --</p>
+        <span id="streak-badge" class="bg-amber-500 text-slate-900 font-extrabold text-xs px-3 py-1 rounded-full">🔥 Active</span>
       </div>
 
-      <!-- Schedule Timetable -->
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
-        <h3 class="text-lg font-bold mb-4 text-slate-200 flex items-center gap-2">
-          <i data-lucide="calendar" class="w-5 h-5 text-indigo-400"></i> Daily Schedule Blocks
-        </h3>
-        <div id="schedule-list" class="space-y-3">
-          <p class="text-slate-400 text-sm">Fetching schedule...</p>
-        </div>
+      <!-- Create Long-Term Goal Card -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg">
+        <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-indigo-400">
+          <i data-lucide="target" class="w-5 h-5"></i> Set Long-Term Vision Goal
+        </h2>
+        <form id="create-goal-form" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="goal-title" placeholder="Goal Title (e.g., Buy Plot in Nanyuki)" required class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm">
+            <select id="goal-category" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-300">
+              <option value="real_estate">🏡 Real Estate / Plot</option>
+              <option value="education">🎓 Education</option>
+              <option value="business">💼 Business Expansion</option>
+              <option value="retirement">🌅 Long-Term Retirement</option>
+              <option value="emergency">🛡️ Emergency Fund</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <input type="number" id="goal-target" placeholder="Target Amount (KES)" required class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm">
+            <input type="date" id="goal-date" required class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-400">
+            <input type="number" id="goal-inflation" step="0.1" value="5.0" placeholder="Est. Inflation %" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm">
+          </div>
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 font-bold py-2.5 rounded-xl text-sm transition">
+            Calculate Financial Strategy & Create Goal
+          </button>
+        </form>
+      </div>
+
+      <!-- Goals Container -->
+      <div id="goals-list" class="space-y-4">
+        <!-- Dynamic Goals Loading -->
       </div>
 
     </section>
 
-    <!-- RIGHT COLUMN: Tasks & Pomodoro Focus Timer -->
+    <!-- RIGHT COLUMN: Short-Term Events & Routine -->
     <section class="space-y-6">
 
-      <!-- Today's Action Tasks -->
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
-        <h3 class="text-lg font-bold mb-4 text-slate-200 flex items-center justify-between">
-          <span class="flex items-center gap-2"><i data-lucide="check-square" class="w-5 h-5 text-indigo-400"></i> Today's Tasks</span>
-          <span id="task-counter" class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">0/0</span>
+      <!-- Add Event Card -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-indigo-400">
+          <i data-lucide="calendar-plus" class="w-5 h-5"></i> Short-Term Schedule
         </h3>
-
-        <!-- Add Task Input -->
-        <div class="flex gap-2 mb-4">
-          <input type="text" id="new-task-input" placeholder="New exam or coding task..." 
-                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-          <button id="add-task-btn" onclick="addNewTask()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl">
-            <i data-lucide="plus" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <!-- Task List -->
-        <div id="tasks-container" class="space-y-2">
-          <p class="text-slate-400 text-sm">Loading tasks...</p>
-        </div>
+        <form id="add-event-form" class="space-y-3">
+          <input type="text" id="event-title" placeholder="Event Title" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm">
+          <input type="date" id="event-date" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-400">
+          <div class="grid grid-cols-2 gap-2">
+            <input type="time" id="event-start" required class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-400">
+            <input type="time" id="event-end" required class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-400">
+          </div>
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 font-bold py-2.5 rounded-xl text-sm transition">Add Event</button>
+        </form>
       </div>
 
-      <!-- Focus Timer -->
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg text-center">
-        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Focus Session Timer</h3>
-        <div id="timer-display" class="text-4xl font-black text-indigo-400 tracking-widest my-3">25:00</div>
-        <div class="flex justify-center gap-2">
-          <button id="start-timer-btn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
-            <i data-lucide="play" class="w-4 h-4"></i> <span id="timer-btn-text">Start Focus</span>
-          </button>
-          <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold">
-            Reset
-          </button>
+      <!-- Events List -->
+      <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg">
+        <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Scheduled Events</h4>
+        <div id="events-container" class="space-y-2">
+          <!-- Dynamic Events -->
         </div>
       </div>
 
     </section>
   </main>
 
-  <!-- Application Logic & Supabase Integration -->
   <script>
-    // 1. Initialize Supabase Client
-    const SUPABASE_URL = "https://swxejnfbaicyqcadqfvs.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_OU7lOdvUHfLctGoeE4hINg_RgMyFhVE";
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_URL = 'https://swxejnfbaicyqcadqfvs.supabase.co';
+    const SUPABASE_PUB_KEY = 'sb_publishable_OU7lOdvUHfLctGoeE4hINg_RgMyFhVE';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUB_KEY);
 
-    let scheduleData = [];
-    let timerInterval = null;
-    let timeLeft = 25 * 60;
-    let isTimerRunning = false;
+    let isSignUp = false;
+    let currentUser = null;
 
-    // 2. Initial Setup on Page Load
-    document.addEventListener("DOMContentLoaded", () => {
-      lucide.createIcons();
-      updateClock();
-      setInterval(updateClock, 1000);
-      
-      fetchSchedule();
-      fetchTasks();
+    lucide.createIcons();
+
+    async function checkAuth() {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      currentUser = user;
+      renderAuthSection();
+      if (user) {
+        loadStreak();
+        loadGoals();
+        loadEvents();
+      }
+    }
+
+    function renderAuthSection() {
+      const section = document.getElementById('auth-section');
+      if (currentUser) {
+        section.innerHTML = `
+          <span class="text-xs text-slate-400">${currentUser.email}</span>
+          <button onclick="logout()" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold transition">Sign Out</button>
+        `;
+      } else {
+        section.innerHTML = `
+          <button onclick="openAuthModal()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-xl text-xs font-bold transition">Login / Register</button>
+        `;
+      }
+    }
+
+    function openAuthModal() { document.getElementById('auth-modal').classList.remove('hidden'); }
+    function closeAuthModal() { document.getElementById('auth-modal').classList.add('hidden'); }
+
+    function toggleAuthMode() {
+      isSignUp = !isSignUp;
+      document.getElementById('modal-title').innerText = isSignUp ? 'Create Account' : 'Account Login';
+      document.getElementById('auth-submit-btn').innerText = isSignUp ? 'Sign Up' : 'Sign In';
+      document.getElementById('auth-toggle-btn').innerText = isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up';
+    }
+
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+
+      let res = isSignUp ? 
+        await supabaseClient.auth.signUp({ email, password }) : 
+        await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (res.error) alert(res.error.message);
+      else {
+        closeAuthModal();
+        checkAuth();
+      }
     });
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('live-clock').innerText = now.toLocaleTimeString();
-      highlightActiveBlock();
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      document.getElementById('goals-list').innerHTML = '<p class="text-center text-slate-500 py-8">Please sign in to view goals.</p>';
+      document.getElementById('events-container').innerHTML = '';
+      document.getElementById('streak-card').classList.add('hidden');
+      renderAuthSection();
     }
 
-    // 3. Fetch Schedule Blocks from Supabase
-    async function fetchSchedule() {
-      const { data, error } = await _supabase
-        .from('schedule_blocks')
+    // 1. LOAD SAVINGS STREAK
+    async function loadStreak() {
+      const { data } = await supabaseClient
+        .from('savings_streaks')
         .select('*')
-        .order('start_time', { ascending: true });
+        .eq('user_id', currentUser.id)
+        .single();
 
-      if (error) {
-        console.error("Error fetching schedule:", error);
-        return;
-      }
-
-      scheduleData = data || [];
-      renderSchedule();
-      highlightActiveBlock();
-    }
-
-    function renderSchedule() {
-      const listContainer = document.getElementById('schedule-list');
-      if (scheduleData.length === 0) {
-        listContainer.innerHTML = `<p class="text-slate-400 text-sm">No schedule blocks found.</p>`;
-        return;
-      }
-
-      listContainer.innerHTML = scheduleData.map(block => `
-        <div id="block-${block.id}" class="flex items-center justify-between p-3.5 rounded-xl border border-slate-700/60 bg-slate-900/50 transition-all">
-          <div>
-            <h4 class="font-bold text-slate-200 text-sm">${block.title}</h4>
-            <p class="text-xs text-slate-400 mt-0.5">${block.start_time.slice(0, 5)} - ${block.end_time.slice(0, 5)}</p>
-          </div>
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-md capitalize bg-slate-800 text-indigo-300 border border-slate-700">
-            ${block.category}
-          </span>
-        </div>
-      `).join('');
-    }
-
-    function highlightActiveBlock() {
-      if (!scheduleData.length) return;
-
-      const now = new Date();
-      const currentMins = now.getHours() * 60 + now.getMinutes();
-
-      let active = scheduleData.find(block => {
-        const [sh, sm] = block.start_time.split(':').map(Number);
-        const [eh, em] = block.end_time.split(':').map(Number);
-        const startMins = sh * 60 + sm;
-        const endMins = eh * 60 + em;
-
-        return currentMins >= startMins && currentMins < endMins;
-      });
-
-      const titleEl = document.getElementById('active-block-title');
-      const timeEl = document.getElementById('active-block-time');
-
-      if (active) {
-        titleEl.innerText = active.title;
-        timeEl.innerText = `${active.start_time.slice(0, 5)} - ${active.end_time.slice(0, 5)}`;
-      } else {
-        titleEl.innerText = "Rest / Personal Time";
-        timeEl.innerText = "No fixed scheduled block right now";
+      if (data) {
+        document.getElementById('streak-card').classList.remove('hidden');
+        document.getElementById('streak-text').innerText = `${data.current_streak} Consecutive Days Active (Longest: ${data.longest_streak})`;
       }
     }
 
-    // 4. Fetch & Manage Tasks
-    async function fetchTasks() {
-      const { data, error } = await _supabase
-        .from('daily_tasks')
+    // 2. CREATE GOAL WITH INFLATION ENGINE
+    document.getElementById('create-goal-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return openAuthModal();
+
+      const title = document.getElementById('goal-title').value;
+      const category = document.getElementById('goal-category').value;
+      const target_amount = parseFloat(document.getElementById('goal-target').value);
+      const target_date = document.getElementById('goal-date').value;
+      const inflation_rate_pct = parseFloat(document.getElementById('goal-inflation').value) || 5.0;
+
+      const { error } = await supabaseClient
+        .from('long_term_goals')
+        .insert([{ user_id: currentUser.id, title, category, target_amount, target_date, inflation_rate_pct }]);
+
+      if (error) alert(error.message);
+      else {
+        document.getElementById('create-goal-form').reset();
+        loadGoals();
+      }
+    });
+
+    // 3. LOAD & RENDER GOALS
+    async function loadGoals() {
+      const { data: goals } = await supabaseClient
+        .from('long_term_goals')
         .select('*')
+        .eq('user_id', currentUser.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error("Error fetching tasks:", error);
+      const container = document.getElementById('goals-list');
+      container.innerHTML = '';
+
+      if (!goals || goals.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-6">No goals set. Create one above!</p>';
         return;
       }
 
-      renderTasks(data || []);
+      for (const goal of goals) {
+        const remaining = goal.target_amount - goal.current_savings;
+        const targetDate = new Date(goal.target_date);
+        const today = new Date();
+        
+        const diffDays = Math.max(1, Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24)));
+        const diffYears = (diffDays / 365).toFixed(1);
+        const diffMonths = Math.max(1, Math.ceil(diffDays / 30));
+
+        const dailySave = (remaining / diffDays).toFixed(2);
+        const monthlySave = (remaining / diffMonths).toFixed(2);
+        const progressPct = Math.min(100, ((goal.current_savings / goal.target_amount) * 100)).toFixed(1);
+
+        // Inflation adjustment calculation
+        const inflationFactor = Math.pow(1 + (goal.inflation_rate_pct / 100), diffYears);
+        const adjustedTarget = (goal.target_amount * inflationFactor).toFixed(0);
+
+        const card = document.createElement('div');
+        card.className = 'bg-slate-800 border border-slate-700 p-5 rounded-2xl space-y-4 shadow-lg';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="text-xl font-bold text-white">${goal.title}</h3>
+              <p class="text-xs text-slate-400">Target Date: ${goal.target_date} (${diffYears} years / ${diffDays} days left)</p>
+            </div>
+            <span class="text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-3 py-1 rounded-full font-bold">
+              ${progressPct}% Progress
+            </span>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700">
+            <div class="bg-indigo-500 h-3 rounded-full transition-all duration-500" style="width: ${progressPct}%"></div>
+          </div>
+
+          <!-- Target Breakdown -->
+          <div class="grid grid-cols-2 text-xs text-slate-400">
+            <span>Saved: <strong class="text-emerald-400">KES ${goal.current_savings.toLocaleString()}</strong></span>
+            <span class="text-right">Target: <strong class="text-white">KES ${goal.target_amount.toLocaleString()}</strong></span>
+          </div>
+
+          <!-- Guidance Engine -->
+          <div class="grid grid-cols-3 gap-2 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 text-center text-xs">
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">Daily Goal</p>
+              <p class="font-bold text-amber-400">KES ${parseFloat(dailySave).toLocaleString()}</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">Monthly Goal</p>
+              <p class="font-bold text-indigo-400">KES ${parseFloat(monthlySave).toLocaleString()}</p>
+            </div>
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">Inflation Adjusted</p>
+              <p class="font-bold text-slate-300">KES ${parseFloat(adjustedTarget).toLocaleString()}</p>
+            </div>
+          </div>
+
+          <!-- Deposit Action -->
+          <div class="flex gap-2 pt-1">
+            <input type="number" id="deposit-${goal.id}" placeholder="Enter Deposit (KES)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs">
+            <button onclick="logDeposit('${goal.id}')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-xl text-xs font-bold transition">
+              Log Deposit
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      }
     }
 
-    function renderTasks(tasks) {
-      const tasksContainer = document.getElementById('tasks-container');
-      const completed = tasks.filter(t => t.is_completed).length;
-      document.getElementById('task-counter').innerText = `${completed}/${tasks.length}`;
+    async function logDeposit(goalId) {
+      const input = document.getElementById(`deposit-${goalId}`);
+      const amount = parseFloat(input.value);
 
-      if (tasks.length === 0) {
-        tasksContainer.innerHTML = `<p class="text-slate-400 text-xs">No tasks added for today yet.</p>`;
+      if (!amount || amount <= 0) return alert('Enter valid amount');
+
+      const { error } = await supabaseClient
+        .from('savings_transactions')
+        .insert([{ goal_id: goalId, user_id: currentUser.id, amount }]);
+
+      if (error) alert(error.message);
+      else {
+        input.value = '';
+        loadStreak();
+        loadGoals();
+      }
+    }
+
+    // 4. SHORT-TERM EVENTS
+    document.getElementById('add-event-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return openAuthModal();
+
+      const title = document.getElementById('event-title').value;
+      const event_date = document.getElementById('event-date').value;
+      const start_time = document.getElementById('event-start').value;
+      const end_time = document.getElementById('event-end').value;
+
+      const { error } = await supabaseClient
+        .from('user_events')
+        .insert([{ user_id: currentUser.id, title, event_date, start_time, end_time }]);
+
+      if (error) alert(error.message);
+      else {
+        document.getElementById('add-event-form').reset();
+        loadEvents();
+      }
+    });
+
+    async function loadEvents() {
+      const { data: events } = await supabaseClient
+        .from('user_events')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('event_date', { ascending: true });
+
+      const container = document.getElementById('events-container');
+      container.innerHTML = '';
+
+      if (!events || events.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-500 py-4 text-xs">No events scheduled.</p>';
         return;
       }
 
-      tasksContainer.innerHTML = tasks.map(t => `
-        <div class="flex items-center justify-between p-2.5 bg-slate-900/60 rounded-xl border border-slate-700/50">
-          <label class="flex items-center space-x-3 cursor-pointer">
-            <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTask('${t.id}', ${!t.is_completed})"
-                   class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-0 bg-slate-800">
-            <span class="text-sm ${t.is_completed ? 'line-through text-slate-500' : 'text-slate-200'}">${t.task_name}</span>
-          </label>
-          <button onclick="deleteTask('${t.id}')" class="text-slate-500 hover:text-rose-400 text-xs">
+      events.forEach(event => {
+        const item = document.createElement('div');
+        item.className = 'p-3 bg-slate-900 border border-slate-700/60 rounded-xl flex justify-between items-center';
+        item.innerHTML = `
+          <div>
+            <h5 class="text-sm font-semibold text-slate-200">${event.title}</h5>
+            <p class="text-xs text-slate-400">${event.event_date} | ${event.start_time.slice(0,5)} - ${event.end_time.slice(0,5)}</p>
+          </div>
+          <button onclick="deleteEvent('${event.id}')" class="text-slate-500 hover:text-red-400 transition">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
-        </div>
-      `).join('');
-
+        `;
+        container.appendChild(item);
+      });
       lucide.createIcons();
     }
 
-    async function addNewTask() {
-      const input = document.getElementById('new-task-input');
-      const taskName = input.value.trim();
-      if (!taskName) return;
-
-      const { error } = await _supabase
-        .from('daily_tasks')
-        .insert([{ task_name: taskName, category: 'general' }]);
-
-      if (error) console.error("Error adding task:", error);
-      input.value = '';
-      fetchTasks();
+    async function deleteEvent(id) {
+      await supabaseClient.from('user_events').delete().eq('id', id);
+      loadEvents();
     }
 
-    async function toggleTask(id, status) {
-      await _supabase.from('daily_tasks').update({ is_completed: status }).eq('id', id);
-      fetchTasks();
-    }
-
-    async function deleteTask(id) {
-      await _supabase.from('daily_tasks').delete().eq('id', id);
-      fetchTasks();
-    }
-
-    // 5. Pomodoro Focus Timer Logic
-    function toggleTimer() {
-      if (isTimerRunning) {
-        clearInterval(timerInterval);
-        isTimerRunning = false;
-        document.getElementById('timer-btn-text').innerText = "Resume";
-      } else {
-        isTimerRunning = true;
-        document.getElementById('timer-btn-text').innerText = "Pause";
-        timerInterval = setInterval(() => {
-          if (timeLeft > 0) {
-            timeLeft--;
-            updateTimerDisplay();
-          } else {
-            clearInterval(timerInterval);
-            alert("Focus session complete!");
-            resetTimer();
-          }
-        }, 1000);
-      }
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      isTimerRunning = false;
-      timeLeft = 25 * 60;
-      updateTimerDisplay();
-      document.getElementById('timer-btn-text').innerText = "Start Focus";
-    }
-
-    function updateTimerDisplay() {
-      const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-      const secs = (timeLeft % 60).toString().padStart(2, '0');
-      document.getElementById('timer-display').innerText = `${mins}:${secs}`;
-    }
+    checkAuth();
   </script>
 </body>
 </html>
