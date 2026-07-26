@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time & Routine Manager</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS Client library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-12">
+
+  <!-- Header -->
+  <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+    <div class="flex items-center space-x-3">
+      <i data-lucide="clock" class="text-indigo-400 w-6 h-6"></i>
+      <h1 class="text-xl font-bold tracking-wide">Time & Routine Manager</h1>
+    </div>
+    <div id="live-clock" class="text-sm font-semibold bg-slate-700 px-3 py-1.5 rounded-lg text-indigo-300">
+      00:00:00 AM
+    </div>
+  </header>
+
+  <!-- Main Grid Container -->
+  <main class="max-w-6xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- LEFT COLUMN: Daily Routine & Schedule -->
+    <section class="lg:col-span-2 space-y-6">
+      
+      <!-- Current Active Block -->
+      <div class="bg-indigo-950/40 border border-indigo-500/30 p-5 rounded-2xl shadow-lg">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs uppercase font-bold tracking-wider text-indigo-400">Current Focus Block</span>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            Active Now
+          </span>
+        </div>
+        <h2 id="active-block-title" class="text-2xl font-bold text-white mb-1">Loading status...</h2>
+        <p id="active-block-time" class="text-sm text-slate-400">-- : --</p>
+      </div>
+
+      <!-- Schedule Timetable -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <h3 class="text-lg font-bold mb-4 text-slate-200 flex items-center gap-2">
+          <i data-lucide="calendar" class="w-5 h-5 text-indigo-400"></i> Daily Schedule Blocks
+        </h3>
+        <div id="schedule-list" class="space-y-3">
+          <p class="text-slate-400 text-sm">Fetching schedule...</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: Tasks & Pomodoro Focus Timer -->
+    <section class="space-y-6">
+
+      <!-- Today's Action Tasks -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg">
+        <h3 class="text-lg font-bold mb-4 text-slate-200 flex items-center justify-between">
+          <span class="flex items-center gap-2"><i data-lucide="check-square" class="w-5 h-5 text-indigo-400"></i> Today's Tasks</span>
+          <span id="task-counter" class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">0/0</span>
+        </h3>
+
+        <!-- Add Task Input -->
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="new-task-input" placeholder="New exam or coding task..." 
+                 class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+          <button id="add-task-btn" onclick="addNewTask()" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-xl">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="tasks-container" class="space-y-2">
+          <p class="text-slate-400 text-sm">Loading tasks...</p>
+        </div>
+      </div>
+
+      <!-- Focus Timer -->
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg text-center">
+        <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Focus Session Timer</h3>
+        <div id="timer-display" class="text-4xl font-black text-indigo-400 tracking-widest my-3">25:00</div>
+        <div class="flex justify-center gap-2">
+          <button id="start-timer-btn" onclick="toggleTimer()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1">
+            <i data-lucide="play" class="w-4 h-4"></i> <span id="timer-btn-text">Start Focus</span>
+          </button>
+          <button onclick="resetTimer()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold">
+            Reset
+          </button>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Application Logic & Supabase Integration -->
+  <script>
+    // 1. Initialize Supabase Client
+    const SUPABASE_URL = "https://swxejnfbaicyqcadqfvs.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_OU7lOdvUHfLctGoeE4hINg_RgMyFhVE";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let scheduleData = [];
+    let timerInterval = null;
+    let timeLeft = 25 * 60;
+    let isTimerRunning = false;
+
+    // 2. Initial Setup on Page Load
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      updateClock();
+      setInterval(updateClock, 1000);
+      
+      fetchSchedule();
+      fetchTasks();
+    });
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('live-clock').innerText = now.toLocaleTimeString();
+      highlightActiveBlock();
+    }
+
+    // 3. Fetch Schedule Blocks from Supabase
+    async function fetchSchedule() {
+      const { data, error } = await _supabase
+        .from('schedule_blocks')
+        .select('*')
+        .order('start_time', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching schedule:", error);
+        return;
+      }
+
+      scheduleData = data || [];
+      renderSchedule();
+      highlightActiveBlock();
+    }
+
+    function renderSchedule() {
+      const listContainer = document.getElementById('schedule-list');
+      if (scheduleData.length === 0) {
+        listContainer.innerHTML = `<p class="text-slate-400 text-sm">No schedule blocks found.</p>`;
+        return;
+      }
+
+      listContainer.innerHTML = scheduleData.map(block => `
+        <div id="block-${block.id}" class="flex items-center justify-between p-3.5 rounded-xl border border-slate-700/60 bg-slate-900/50 transition-all">
+          <div>
+            <h4 class="font-bold text-slate-200 text-sm">${block.title}</h4>
+            <p class="text-xs text-slate-400 mt-0.5">${block.start_time.slice(0, 5)} - ${block.end_time.slice(0, 5)}</p>
+          </div>
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-md capitalize bg-slate-800 text-indigo-300 border border-slate-700">
+            ${block.category}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    function highlightActiveBlock() {
+      if (!scheduleData.length) return;
+
+      const now = new Date();
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+
+      let active = scheduleData.find(block => {
+        const [sh, sm] = block.start_time.split(':').map(Number);
+        const [eh, em] = block.end_time.split(':').map(Number);
+        const startMins = sh * 60 + sm;
+        const endMins = eh * 60 + em;
+
+        return currentMins >= startMins && currentMins < endMins;
+      });
+
+      const titleEl = document.getElementById('active-block-title');
+      const timeEl = document.getElementById('active-block-time');
+
+      if (active) {
+        titleEl.innerText = active.title;
+        timeEl.innerText = `${active.start_time.slice(0, 5)} - ${active.end_time.slice(0, 5)}`;
+      } else {
+        titleEl.innerText = "Rest / Personal Time";
+        timeEl.innerText = "No fixed scheduled block right now";
+      }
+    }
+
+    // 4. Fetch & Manage Tasks
+    async function fetchTasks() {
+      const { data, error } = await _supabase
+        .from('daily_tasks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching tasks:", error);
+        return;
+      }
+
+      renderTasks(data || []);
+    }
+
+    function renderTasks(tasks) {
+      const tasksContainer = document.getElementById('tasks-container');
+      const completed = tasks.filter(t => t.is_completed).length;
+      document.getElementById('task-counter').innerText = `${completed}/${tasks.length}`;
+
+      if (tasks.length === 0) {
+        tasksContainer.innerHTML = `<p class="text-slate-400 text-xs">No tasks added for today yet.</p>`;
+        return;
+      }
+
+      tasksContainer.innerHTML = tasks.map(t => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-900/60 rounded-xl border border-slate-700/50">
+          <label class="flex items-center space-x-3 cursor-pointer">
+            <input type="checkbox" ${t.is_completed ? 'checked' : ''} onchange="toggleTask('${t.id}', ${!t.is_completed})"
+                   class="w-4 h-4 rounded border-slate-600 text-indigo-600 focus:ring-0 bg-slate-800">
+            <span class="text-sm ${t.is_completed ? 'line-through text-slate-500' : 'text-slate-200'}">${t.task_name}</span>
+          </label>
+          <button onclick="deleteTask('${t.id}')" class="text-slate-500 hover:text-rose-400 text-xs">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    async function addNewTask() {
+      const input = document.getElementById('new-task-input');
+      const taskName = input.value.trim();
+      if (!taskName) return;
+
+      const { error } = await _supabase
+        .from('daily_tasks')
+        .insert([{ task_name: taskName, category: 'general' }]);
+
+      if (error) console.error("Error adding task:", error);
+      input.value = '';
+      fetchTasks();
+    }
+
+    async function toggleTask(id, status) {
+      await _supabase.from('daily_tasks').update({ is_completed: status }).eq('id', id);
+      fetchTasks();
+    }
+
+    async function deleteTask(id) {
+      await _supabase.from('daily_tasks').delete().eq('id', id);
+      fetchTasks();
+    }
+
+    // 5. Pomodoro Focus Timer Logic
+    function toggleTimer() {
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        document.getElementById('timer-btn-text').innerText = "Resume";
+      } else {
+        isTimerRunning = true;
+        document.getElementById('timer-btn-text').innerText = "Pause";
+        timerInterval = setInterval(() => {
+          if (timeLeft > 0) {
+            timeLeft--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            alert("Focus session complete!");
+            resetTimer();
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timeLeft = 25 * 60;
+      updateTimerDisplay();
+      document.getElementById('timer-btn-text').innerText = "Start Focus";
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const secs = (timeLeft % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${mins}:${secs}`;
+    }
+  </script>
+</body>
+</html>
