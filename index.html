@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VisionFlow | Multi-User Financial & Time Engine</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-12">
 
@@ -17,7 +17,7 @@
       <h1 class="text-xl font-bold tracking-wide">VisionFlow</h1>
     </div>
     <div id="auth-section" class="flex items-center gap-3">
-      <!-- Dynamic Auth Buttons -->
+      <button onclick="openAuthModal()" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-1.5 rounded-xl text-xs font-bold transition">Login / Register</button>
     </div>
   </header>
 
@@ -34,7 +34,7 @@
         </div>
       </form>
     </div>
-  </header>
+  </div>
 
   <!-- Dashboard Container -->
   <main class="max-w-7xl mx-auto px-4 mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -83,7 +83,7 @@
 
       <!-- Goals Container -->
       <div id="goals-list" class="space-y-4">
-        <!-- Dynamic Goals Loading -->
+        <p class="text-center text-slate-500 py-8">Please sign in to view goals.</p>
       </div>
 
     </section>
@@ -111,7 +111,7 @@
       <div class="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg">
         <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Scheduled Events</h4>
         <div id="events-container" class="space-y-2">
-          <!-- Dynamic Events -->
+          <p class="text-center text-slate-500 py-4 text-xs">No events scheduled.</p>
         </div>
       </div>
 
@@ -119,17 +119,31 @@
   </main>
 
   <script>
-    // PRE-CONNECTED SUPABASE CREDENTIALS
     const SUPABASE_URL = 'https://swxejnfbaicyqcadqfvs.supabase.co';
     const SUPABASE_PUB_KEY = 'sb_publishable_OU7lOdvUHfLctGoeE4hINg_RgMyFhVE';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUB_KEY);
-
+    
+    let supabaseClient = null;
     let isSignUp = false;
     let currentUser = null;
 
-    lucide.createIcons();
+    function renderIcons() {
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch(e) { console.error(e); }
+      }
+    }
+
+    async function initApp() {
+      try {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUB_KEY);
+        await checkAuth();
+      } catch (err) {
+        console.error('Initialization error:', err);
+      }
+      renderIcons();
+    }
 
     async function checkAuth() {
+      if (!supabaseClient) return;
       const { data: { user } } = await supabaseClient.auth.getUser();
       currentUser = user;
       renderAuthSection();
@@ -137,8 +151,6 @@
         loadStreak();
         loadGoals();
         loadEvents();
-      } else {
-        document.getElementById('goals-list').innerHTML = '<p class="text-center text-slate-500 py-8">Please sign in to view goals.</p>';
       }
     }
 
@@ -187,12 +199,11 @@
       await supabaseClient.auth.signOut();
       currentUser = null;
       document.getElementById('goals-list').innerHTML = '<p class="text-center text-slate-500 py-8">Please sign in to view goals.</p>';
-      document.getElementById('events-container').innerHTML = '';
+      document.getElementById('events-container').innerHTML = '<p class="text-center text-slate-500 py-4 text-xs">No events scheduled.</p>';
       document.getElementById('streak-card').classList.add('hidden');
       renderAuthSection();
     }
 
-    // 1. LOAD SAVINGS STREAK
     async function loadStreak() {
       const { data } = await supabaseClient
         .from('savings_streaks')
@@ -206,7 +217,6 @@
       }
     }
 
-    // 2. CREATE GOAL WITH INFLATION ENGINE
     document.getElementById('create-goal-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser) return openAuthModal();
@@ -228,7 +238,6 @@
       }
     });
 
-    // 3. LOAD & RENDER GOALS
     async function loadGoals() {
       const { data: goals, error } = await supabaseClient
         .from('long_term_goals')
@@ -311,6 +320,7 @@
         `;
         container.appendChild(card);
       }
+      renderIcons();
     }
 
     async function logDeposit(goalId) {
@@ -331,7 +341,6 @@
       }
     }
 
-    // 4. SHORT-TERM EVENTS
     document.getElementById('add-event-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser) return openAuthModal();
@@ -381,7 +390,7 @@
         `;
         container.appendChild(item);
       });
-      lucide.createIcons();
+      renderIcons();
     }
 
     async function deleteEvent(id) {
@@ -389,7 +398,7 @@
       loadEvents();
     }
 
-    checkAuth();
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
